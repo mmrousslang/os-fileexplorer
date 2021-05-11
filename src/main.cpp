@@ -90,9 +90,8 @@ int main(int argc, char **argv)
                             //icon was for a directory
                             listing temp = listOnScreen.at(i);
                             listOnScreen.clear();
-                            listOnScreen.push_back(temp);
-                            std::string pls = temp.fullPath;
-                            render(renderer, &data, &listOnScreen, pls);
+                            std::string copiedPath = temp.fullPath;
+                            render(renderer, &data, &listOnScreen, copiedPath);
                         }else{
                             std::string file = listOnScreen.at(i).fullPath;
                             toOpen(file);
@@ -105,9 +104,8 @@ int main(int argc, char **argv)
                             //file name was for a directory
                             listing temp = listOnScreen.at(i);
                             listOnScreen.clear();
-                            listOnScreen.push_back(temp);
-                            std::string pls = temp.fullPath;
-                            render(renderer, &data, &listOnScreen, pls);
+                            std::string copiedPath = temp.fullPath;
+                            render(renderer, &data, &listOnScreen, copiedPath);
                         }else{
                             std::string file = listOnScreen.at(i).fullPath;
                             toOpen(file);
@@ -115,8 +113,6 @@ int main(int argc, char **argv)
                     }else{
                         //user clicked on empty space
                     }
-                    //check if user clicked on file name
-                    //check if user clicked on recursive mode button
                 }
                 if(event.button.x >= 600 && event.button.x <= 723 && event.button.y >= 20 && event.button.y <= 45){
                     //user clicked on the recursive text to toggle it off/on
@@ -125,10 +121,6 @@ int main(int argc, char **argv)
                 }
             }
         }
-
-        // render(renderer, &data);
-        // (listing *listing_ptr, &listOnScreen, &data_ptr, renderer);
-
     }
 
     // clean up
@@ -202,6 +194,7 @@ void render(SDL_Renderer *renderer, AppData *data_ptr, std::vector<listing> *lis
     SDL_QueryTexture(recursiveButtonTexture, NULL, NULL, &(rect.w), &(rect.h));
     SDL_RenderCopy(renderer, recursiveButtonTexture, NULL, &rect);
 
+    //render files on screen
     rect.x = 60;
     rect.y = 60;
     rect.w = 30;
@@ -231,6 +224,7 @@ void showFiles(std::string name, std::vector<listing> *listOnScreen, AppData *da
     begRect.w = 30;
     begRect.h = 30;
     
+    //only clear the list if recursive mode is off
     if(data_ptr->recursive == false){
         listOnScreen->clear();
     }
@@ -273,72 +267,93 @@ void showFiles(std::string name, std::vector<listing> *listOnScreen, AppData *da
                         tempListing.fullPath = name.substr(0, name.find_last_of('/'));
                     }
                 }
-
                 tempListing.type = "directory";
-                SDL_RenderCopy(renderer, data_ptr->directory, NULL, rect);
+                if(rect->y + rect->w < 600){
+                    SDL_RenderCopy(renderer, data_ptr->directory, NULL, rect);
+                }
             } else if((S_IEXEC & file.st_mode) != 0){
                 //type is executable
                 tempListing.type = "executable";
-                SDL_RenderCopy(renderer, data_ptr->executable, NULL, rect);
+                if(rect->y + rect->w < 600){
+                    SDL_RenderCopy(renderer, data_ptr->executable, NULL, rect);
+                }
             }else if(extension == "jpg" || extension == "jpeg" || extension == "png" || extension == "tif" || extension == "tiff" || extension == "gif"){
                 //type is image
                 tempListing.type = "image";
-                SDL_RenderCopy(renderer, data_ptr->image, NULL, rect);
+                if(rect->y + rect->w < 600){
+                    SDL_RenderCopy(renderer, data_ptr->image, NULL, rect);
+                }
             }else if(extension == "mp4" || extension == "mov" || extension == "mkv" || extension == "avi" || extension == "webm"){
                 //type is video
                 tempListing.type = "video";
-                SDL_RenderCopy(renderer, data_ptr->video, NULL, rect);
+                if(rect->y + rect->w < 600){
+                    SDL_RenderCopy(renderer, data_ptr->video, NULL, rect);
+                }
             }else if(extension == "h" || extension == "c" || extension == "cpp" || extension == "py" || extension == "java" || extension == "js"){
                 //type is code file
                 tempListing.type = "codeFile";
-                SDL_RenderCopy(renderer, data_ptr->codeFile, NULL, rect);
+                if(rect->y + rect->w < 600){
+                    SDL_RenderCopy(renderer, data_ptr->codeFile, NULL, rect);
+                }
             }else{
                 //type is other
                 tempListing.type = "other";
-                SDL_RenderCopy(renderer, data_ptr->other, NULL, rect);
+                if(rect->y + rect->w < 600){
+                    SDL_RenderCopy(renderer, data_ptr->other, NULL, rect);
+                }
             }
+            
+            if(rect->y + rect->w < 600){
+                //set x,y,w,h of icon and store in listing struct item
+                tempListing.picx = rect->x;
+                tempListing.picy = rect->y;
+                tempListing.pich = rect->h;
+                tempListing.picw = rect->w;
+                rect->x += 40;
+                //render on screen
+                SDL_Surface *fileSurface = TTF_RenderText_Solid(data_ptr->font, files[i].c_str(), color);
+                SDL_Texture *fileTexture = SDL_CreateTextureFromSurface(renderer, fileSurface);
+                SDL_FreeSurface(fileSurface);
+                SDL_QueryTexture(fileTexture, NULL, NULL, &(rect->w), &(rect->h));
+                SDL_RenderCopy(renderer, fileTexture, NULL, rect);
+                // set x,y,w,h of text and store in listing struct item
+                tempListing.textx = rect->x;
+                tempListing.texty = rect->y;
+                tempListing.texth = rect->h;
+                tempListing.textw = rect->w;
+                //set rect again and print out size and permissions
+                getPermissionsAndSize(&tempListing, &file);
+                //render permissions and file size of the file
+                rect->w = 30;
+                rect->h = 30;
+                rect->x = 600;
+                SDL_Surface *sizeSurface = TTF_RenderText_Solid(data_ptr->font, tempListing.size.c_str(), color);
+                SDL_Texture *sizeTexture = SDL_CreateTextureFromSurface(renderer, sizeSurface);
+                SDL_FreeSurface(sizeSurface);
+                SDL_QueryTexture(sizeTexture, NULL, NULL, &(rect->w), &(rect->h));
+                SDL_RenderCopy(renderer, sizeTexture, NULL, rect);
+                rect->w = 30;
+                rect->h = 30;
+                rect->x = 700;
+                SDL_Surface *permissionsSurface = TTF_RenderText_Solid(data_ptr->font, tempListing.permissions.c_str(), color);
+                SDL_Texture *permissionsTexture = SDL_CreateTextureFromSurface(renderer, permissionsSurface);
+                SDL_FreeSurface(permissionsSurface);
+                SDL_QueryTexture(permissionsTexture, NULL, NULL, &(rect->w), &(rect->h));
+                SDL_RenderCopy(renderer, permissionsTexture, NULL, rect);
 
-            tempListing.picx = rect->x;
-            tempListing.picy = rect->y;
-            tempListing.pich = rect->h;
-            tempListing.picw = rect->w;
-            rect->x += 40;
-            SDL_Surface *fileSurface = TTF_RenderText_Solid(data_ptr->font, files[i].c_str(), color);
-            SDL_Texture *fileTexture = SDL_CreateTextureFromSurface(renderer, fileSurface);
-            SDL_FreeSurface(fileSurface);
-            SDL_QueryTexture(fileTexture, NULL, NULL, &(rect->w), &(rect->h));
-            SDL_RenderCopy(renderer, fileTexture, NULL, rect);
-            tempListing.textx = rect->x;
-            tempListing.texty = rect->y;
-            tempListing.texth = rect->h;
-            tempListing.textw = rect->w;
-            //set rect again and print out size and permissions
-            getPermissionsAndSize(&tempListing, &file);
+                rect->w = 30;
+                rect->h = 30;
+                rect->x = begRect.x; 
+                rect->y += 35;
 
-            rect->w = 30;
-            rect->h = 30;
-            rect->x = 600;
-            SDL_Surface *sizeSurface = TTF_RenderText_Solid(data_ptr->font, tempListing.size.c_str(), color);
-            SDL_Texture *sizeTexture = SDL_CreateTextureFromSurface(renderer, sizeSurface);
-            SDL_FreeSurface(sizeSurface);
-            SDL_QueryTexture(sizeTexture, NULL, NULL, &(rect->w), &(rect->h));
-            SDL_RenderCopy(renderer, sizeTexture, NULL, rect);
-            rect->w = 30;
-            rect->h = 30;
-            rect->x = 700;
-            SDL_Surface *permissionsSurface = TTF_RenderText_Solid(data_ptr->font, tempListing.permissions.c_str(), color);
-            SDL_Texture *permissionsTexture = SDL_CreateTextureFromSurface(renderer, permissionsSurface);
-            SDL_FreeSurface(permissionsSurface);
-            SDL_QueryTexture(permissionsTexture, NULL, NULL, &(rect->w), &(rect->h));
-            SDL_RenderCopy(renderer, permissionsTexture, NULL, rect);
-
-            rect->w = 30;
-            rect->h = 30;
-            rect->x = begRect.x; 
-            rect->y += 35;
-
-            listOnScreen->push_back(tempListing);            
-
+                //add the listing struct item to the list that stores all the files on screen. 
+                listOnScreen->push_back(tempListing);   
+            }else {
+                // stop looping through files when file will not be on screen anyore. 
+                break;  
+            }
+            
+            //if recursive mode is true then recurse on directories that are not ".."
             if(tempListing.type == "directory" && data_ptr->recursive && files[i] != ".."){
                 std::string fileNameToPass = tempListing.fullPath;
                 rect->x = rect->x + 20;
