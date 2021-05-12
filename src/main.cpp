@@ -156,8 +156,6 @@ int main(int argc, char **argv)
                 {
                     //user clicked on the previpo page button
                     render_begin = render_begin + render_amount;
-                    std::cout<< " Next button pushed " << std::endl;
-                    std::cout<< " render_begin after next button " << render_begin << std::endl;
                     render(renderer, &data, &listOnScreen, data.pathOnScreen);
                 }
                 if (event.button.x >= 20 && event.button.x <= 200 && event.button.y >= 530 && event.button.y <= 555)
@@ -344,10 +342,6 @@ void showFiles(std::string name, std::vector<listing> *listOnScreen, AppData *da
         render_end = files.size();
     }
 
-    //for(int i = 0; i < files.size(); i++){
-    std::cout<<"Files Size "<< files.size() << std::endl;
-    std::cout<<"render_begin "<< render_begin<< std::endl;
-    std::cout<<"render_end "<< render_end<< std::endl;
 
     for (int i = render_begin; i < render_end; i++)
     {
